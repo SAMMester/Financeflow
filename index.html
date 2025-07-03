@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow - Personal Finance Manager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 FinanceFlow</h1>
+            <p>Your Personal Finance Management Dashboard</p>
+        </div>
+        <div class="card">
+            <h2>📁 Data Management</h2>
+            <div class="import-export-section">
+                <div class="file-input-wrapper">
+                    <input type="file" id="csvFile" accept=".csv" />
+                    <label for="csvFile" class="file-input-label">📥 Import CSV</label>
+                </div>
+                <button class="export-btn" onclick="exportToCSV()">📤 Export CSV</button>
+                <div class="loading" id="importLoading">Importing transactions...</div>
+            </div>
+        </div>
+        <div class="dashboard">
+            <div class="card upload-section">
+                <h2>➕ Add New Transaction</h2>
+                <form id="transactionForm" class="transaction-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transactionDate">Date</label>
+                            <input type="date" id="transactionDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="transactionAmount">Amount ($)</label>
+                            <input type="number" id="transactionAmount" step="0.01" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transactionDescription">Description</label>
+                            <input type="text" id="transactionDescription" placeholder="Enter transaction description" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="transactionCategory">Category</label>
+                            <select id="transactionCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="Food & Dining">🍽️ Food & Dining</option>
+                                <option value="Transportation">🚗 Transportation</option>
+                                <option value="Shopping">🛍️ Shopping</option>
+                                <option value="Entertainment">🎬 Entertainment</option>
+                                <option value="Bills & Utilities">⚡ Bills & Utilities</option>
+                                <option value="Healthcare">🏥 Healthcare</option>
+                                <option value="Education">📚 Education</option>
+                                <option value="Travel">✈️ Travel</option>
+                                <option value="Income">💰 Income</option>
+                                <option value="Investments">📈 Investments</option>
+                                <option value="Other">📝 Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Transaction</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
+                    </div>
+                </form>
+                <div class="success" id="success"></div>
+                <div class="error" id="error"></div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Spending by Category</h2>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalBalance">$0.00</div>
+                <div class="stat-label">Current Balance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalIncome">$0.00</div>
+                <div class="stat-label">Total Income</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalExpenses">$0.00</div>
+                <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="transactionCount">0</div>
+                <div class="stat-label">Transactions</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📈 Monthly Trend</h2>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="transactions-table">
+            <h2>💳 Recent Transactions</h2>
+            <div class="filters">
+                <input type="text" class="filter-input" id="searchFilter" placeholder="Search transactions...">
+                <select class="filter-select" id="categoryFilter">
+                    <option value="">All Categories</option>
+                </select>
+                <input type="date" class="filter-input" id="dateFromFilter">
+                <input type="date" class="filter-input" id="dateToFilter">
+                <button class="btn" onclick="applyFilters()">Apply Filters</button>
+                <button class="btn" onclick="clearFilters()">Clear</button>
+            </div>
+            <table id="transactionsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsBody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #666; padding: 40px;">
+                            No transactions uploaded yet. Upload a file to get started!
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
