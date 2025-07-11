@@ -536,3 +536,541 @@ if (link.download !== undefined) {
   URL.revokeObjectURL(url);
 }
 }        
+
+// Authentication System for Finance Flow
+// Add this to the beginning of your existing script.js file
+
+class AuthSystem {
+    constructor() {
+        this.users = this.loadUsers();
+        this.currentUser = this.getCurrentUser();
+        this.init();
+    }
+
+    init() {
+        // Create auth UI
+        this.createAuthUI();
+        
+        // Check if user is already logged in
+        if (this.currentUser) {
+            this.showMainApp();
+        } else {
+            this.showAuthForm();
+        }
+    }
+
+    createAuthUI() {
+        // Create auth container
+        const authContainer = document.createElement('div');
+        authContainer.id = 'authContainer';
+        authContainer.className = 'auth-container';
+        authContainer.innerHTML = `
+            <div class="auth-box">
+                <!-- Login Form -->
+                <div id="loginForm" class="auth-section">
+                    <div class="auth-header">
+                        <h2>💰 Finance Flow</h2>
+                        <p>Welcome back! Please sign in to your account.</p>
+                    </div>
+                    <div class="auth-form">
+                        <div id="loginMessage"></div>
+                        <form id="loginFormElement">
+                            <div class="auth-form-group">
+                                <label for="loginEmail">Email Address</label>
+                                <input type="email" id="loginEmail" required>
+                            </div>
+                            <div class="auth-form-group">
+                                <label for="loginPassword">Password</label>
+                                <input type="password" id="loginPassword" required>
+                            </div>
+                            <button type="submit" class="auth-btn">Sign In</button>
+                        </form>
+                        <div class="auth-toggle">
+                            <p>Don't have an account? <a href="#" onclick="authSystem.showRegisterForm()">Create Account</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerForm" class="auth-section hidden">
+                    <div class="auth-header">
+                        <h2>💰 Finance Flow</h2>
+                        <p>Create your account to get started.</p>
+                    </div>
+                    <div class="auth-form">
+                        <div id="registerMessage"></div>
+                        <form id="registerFormElement">
+                            <div class="auth-form-group">
+                                <label for="registerName">Full Name</label>
+                                <input type="text" id="registerName" required>
+                            </div>
+                            <div class="auth-form-group">
+                                <label for="registerEmail">Email Address</label>
+                                <input type="email" id="registerEmail" required>
+                            </div>
+                            <div class="auth-form-group">
+                                <label for="registerPassword">Password</label>
+                                <input type="password" id="registerPassword" required minlength="6">
+                            </div>
+                            <div class="auth-form-group">
+                                <label for="confirmPassword">Confirm Password</label>
+                                <input type="password" id="confirmPassword" required minlength="6">
+                            </div>
+                            <button type="submit" class="auth-btn">Create Account</button>
+                        </form>
+                        <div class="auth-toggle">
+                            <p>Already have an account? <a href="#" onclick="authSystem.showLoginForm()">Sign In</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add navigation bar
+        const navBar = document.createElement('div');
+        navBar.id = 'topNav';
+        navBar.className = 'top-nav hidden';
+        navBar.innerHTML = `
+            <div class="nav-container">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <span id="welcomeMessage"></span>
+                </div>
+                <div>
+                    <button class="logout-btn" onclick="authSystem.logout()">Logout</button>
+                </div>
+            </div>
+        `;
+
+        // Add users section
+        const usersSection = document.createElement('div');
+        usersSection.id = 'usersSection';
+        usersSection.className = 'users-section hidden';
+        usersSection.innerHTML = `
+            <h2>👥 All Users</h2>
+            <div class="users-grid" id="usersGrid"></div>
+        `;
+
+        // Insert into DOM
+        document.body.insertBefore(authContainer, document.body.firstChild);
+        document.body.insertBefore(navBar, document.querySelector('.container'));
+        document.querySelector('.container').insertBefore(usersSection, document.querySelector('.header').nextSibling);
+
+        // Add event listeners
+        this.attachEventListeners();
+    }
+
+    attachEventListeners() {
+        document.getElementById('loginFormElement').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.login();
+        });
+
+        document.getElementById('registerFormElement').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.register();
+        });
+    }
+
+    loadUsers() {
+        const users = localStorage.getItem('financeFlowUsers');
+        return users ? JSON.parse(users) : [];
+    }
+
+    saveUsers() {
+        localStorage.setItem('financeFlowUsers', JSON.stringify(this.users));
+    }
+
+    getCurrentUser() {
+        const user = localStorage.getItem('financeFlowCurrentUser');
+        return user ? JSON.parse(user) : null;
+    }
+
+    setCurrentUser(user) {
+        localStorage.setItem('financeFlowCurrentUser', JSON.stringify(user));
+        this.currentUser = user;
+    }
+
+    getUserTransactions(userId) {
+        const userTransactions = localStorage.getItem(`financeFlowTransactions_${userId}`);
+        return userTransactions ? JSON.parse(userTransactions) : [];
+    }
+
+    saveUserTransactions(userId, transactions) {
+        localStorage.setItem(`financeFlowTransactions_${userId}`, JSON.stringify(transactions));
+    }
+
+    register() {
+        const name = document.getElementById('registerName').value.trim();
+        const email = document.getElementById('registerEmail').value.trim();
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validation
+        if (!name || !email || !password) {
+            this.showMessage('registerMessage', 'Please fill in all fields!', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showMessage('registerMessage', 'Passwords do not match!', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showMessage('registerMessage', 'Password must be at least 6 characters long!', 'error');
+            return;
+        }
+
+        // Check if user already exists
+        const existingUser = this.users.find(user => user.email.toLowerCase() === email.toLowerCase());
+        if (existingUser) {
+            this.showMessage('registerMessage', 'User with this email already exists!', 'error');
+            return;
+        }
+
+        // Create new user
+        const newUser = {
+            id: Date.now(),
+            name: name,
+            email: email,
+            password: password, // In production, hash this!
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+        };
+
+        this.users.push(newUser);
+        this.saveUsers();
+        this.showMessage('registerMessage', 'Account created successfully!', 'success');
+        
+        // Auto login
+        setTimeout(() => {
+            this.setCurrentUser(newUser);
+            this.showMainApp();
+        }, 1000);
+    }
+
+    login() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+
+        if (!email || !password) {
+            this.showMessage('loginMessage', 'Please fill in all fields!', 'error');
+            return;
+        }
+
+        const user = this.users.find(u => 
+            u.email.toLowerCase() === email.toLowerCase() && u.password === password
+        );
+        
+        if (user) {
+            // Update last login
+            user.lastLogin = new Date().toISOString();
+            this.saveUsers();
+            
+            this.setCurrentUser(user);
+            this.showMainApp();
+        } else {
+            this.showMessage('loginMessage', 'Invalid email or password!', 'error');
+        }
+    }
+
+    logout() {
+        // Save current transactions before logging out
+        if (this.currentUser && window.transactions) {
+            this.saveUserTransactions(this.currentUser.id, window.transactions);
+        }
+        
+        localStorage.removeItem('financeFlowCurrentUser');
+        this.currentUser = null;
+        this.showAuthForm();
+    }
+
+    showMessage(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="auth-${type}">${message}</div>`;
+        setTimeout(() => {
+            element.innerHTML = '';
+        }, 3000);
+    }
+
+    showLoginForm() {
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+    }
+
+    showRegisterForm() {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+    }
+
+    showAuthForm() {
+        document.getElementById('authContainer').classList.remove('hidden');
+        document.getElementById('topNav').classList.add('hidden');
+        document.getElementById('usersSection').classList.add('hidden');
+        document.querySelector('.container').style.display = 'none';
+    }
+
+    showMainApp() {
+        document.getElementById('authContainer').classList.add('hidden');
+        document.getElementById('topNav').classList.remove('hidden');
+        document.getElementById('usersSection').classList.remove('hidden');
+        document.querySelector('.container').style.display = 'block';
+        
+        // Update navigation
+        this.updateNavigation();
+        
+        // Load user's transactions
+        this.loadUserTransactions();
+        
+        // Update users display
+        this.updateUsersDisplay();
+    }
+
+    updateNavigation() {
+        const userAvatar = document.getElementById('userAvatar');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        
+        if (this.currentUser) {
+            userAvatar.textContent = this.currentUser.name.charAt(0).toUpperCase();
+            welcomeMessage.textContent = `Welcome, ${this.currentUser.name}!`;
+        }
+    }
+
+    loadUserTransactions() {
+        if (this.currentUser) {
+            const userTransactions = this.getUserTransactions(this.currentUser.id);
+            
+            // Convert date strings back to Date objects
+            const processedTransactions = userTransactions.map(t => ({
+                ...t,
+                date: new Date(t.date)
+            }));
+            
+            // Set global transactions variable
+            window.transactions = processedTransactions;
+            window.filteredTransactions = [...processedTransactions];
+            
+            // Update dashboard if functions are available
+            if (typeof updateDashboard === 'function') {
+                updateDashboard();
+            }
+        }
+    }
+
+    updateUsersDisplay() {
+        const usersGrid = document.getElementById('usersGrid');
+        usersGrid.innerHTML = '';
+        
+        this.users.forEach(user => {
+            const userTransactions = this.getUserTransactions(user.id);
+            const totalTransactions = userTransactions.length;
+            const totalIncome = userTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = Math.abs(userTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+            
+            const userCard = document.createElement('div');
+            userCard.className = 'user-card';
+            userCard.innerHTML = `
+                <h3>${user.name}</h3>
+                <p>📧 ${user.email}</p>
+                <p>📅 Joined: ${new Date(user.createdAt).toLocaleDateString()}</p>
+                <div class="user-stats">
+                    <span>💳 ${totalTransactions} transactions</span>
+                    <span>💰 $${(totalIncome - totalExpenses).toFixed(2)}</span>
+                </div>
+            `;
+            usersGrid.appendChild(userCard);
+        });
+    }
+
+    // Method to save current transactions (call this when transactions are modified)
+    saveCurrentTransactions() {
+        if (this.currentUser && window.transactions) {
+            this.saveUserTransactions(this.currentUser.id, window.transactions);
+        }
+    }
+}
+
+// Initialize auth system
+let authSystem;
+
+// Modify your existing DOMContentLoaded event listener
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize auth system first
+    authSystem = new AuthSystem();
+    
+    // Only initialize charts and other functionality if user is logged in
+    if (authSystem.currentUser) {
+        initCharts();
+        // Set today's date as default
+        document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+    }
+});
+
+// Override the existing transaction form handler to save transactions per user
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for auth system to be ready
+    setTimeout(() => {
+        const transactionForm = document.getElementById('transactionForm');
+        if (transactionForm) {
+            // Remove existing event listener and add new one
+            transactionForm.removeEventListener('submit', arguments.callee);
+            
+            transactionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const date = document.getElementById('transactionDate').value;
+                const amount = parseFloat(document.getElementById('transactionAmount').value);
+                const description = document.getElementById('transactionDescription').value.trim();
+                const category = document.getElementById('transactionCategory').value;
+
+                // Validation
+                if (!date || !description || isNaN(amount) || !category) {
+                    showError('Please fill in all required fields');
+                    return;
+                }
+
+                // Create new transaction
+                const newTransaction = {
+                    date: new Date(date),
+                    description: description,
+                    amount: amount,
+                    category: category,
+                    id: Date.now(),
+                    userId: authSystem.currentUser.id // Add user ID
+                };
+
+                // Add to transactions array
+                if (!window.transactions) window.transactions = [];
+                window.transactions.unshift(newTransaction);
+                window.filteredTransactions = [...window.transactions];
+
+                // Save to user's storage
+                authSystem.saveCurrentTransactions();
+
+                // Update dashboard
+                updateDashboard();
+
+                // Show success message
+                showSuccess(`Transaction "${description}" added successfully!`);
+
+                // Clear form
+                clearForm();
+            });
+        }
+    }, 500);
+});
+
+// Override CSV import to save to user's storage
+function parseCSV(csvText) {
+    // Your existing parseCSV function code here
+    // ... (keep all the existing logic)
+    
+    // At the end, after parsing transactions, add user ID to each transaction
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+        throw new Error('CSV file must contain at least a header and one data row');
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const transactions = [];
+
+    // Expected headers (case insensitive)
+    const expectedHeaders = ['date', 'description', 'amount', 'category'];
+    const headerMap = {};
+
+    // Map CSV headers to expected fields
+    expectedHeaders.forEach(expected => {
+        const foundIndex = headers.findIndex(h => 
+            h.toLowerCase().includes(expected) || expected.includes(h.toLowerCase())
+        );
+        if (foundIndex !== -1) {
+            headerMap[expected] = foundIndex;
+        }
+    });
+
+    // Check if all required headers are present
+    const missingHeaders = expectedHeaders.filter(h => !(h in headerMap));
+    if (missingHeaders.length > 0) {
+        throw new Error(`Missing required columns: ${missingHeaders.join(', ')}`);
+    }
+
+    // Parse data rows
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length < headers.length) continue;
+
+        try {
+            const transaction = {
+                date: parseDate(values[headerMap.date]),
+                description: values[headerMap.description].trim(),
+                amount: parseFloat(values[headerMap.amount]),
+                category: values[headerMap.category].trim(),
+                id: Date.now() + i,
+                userId: authSystem.currentUser.id // Add user ID
+            };
+
+            if (isValidTransaction(transaction)) {
+                transactions.push(transaction);
+            }
+        } catch (error) {
+            console.warn(`Skipping invalid row ${i + 1}: ${error.message}`);
+        }
+    }
+
+    return transactions;
+}
+
+// Override the CSV import event listener to save to user's storage
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const csvFileInput = document.getElementById('csvFile');
+        if (csvFileInput) {
+            csvFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (!file.name.toLowerCase().endsWith('.csv')) {
+                    showError('Please select a CSV file');
+                    return;
+                }
+
+                const loading = document.getElementById('importLoading');
+                loading.style.display = 'block';
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const csv = e.target.result;
+                        const importedTransactions = parseCSV(csv);
+                        
+                        if (importedTransactions.length > 0) {
+                            window.transactions = [...importedTransactions];
+                            window.filteredTransactions = [...window.transactions];
+                            
+                            // Save to user's storage
+                            authSystem.saveCurrentTransactions();
+                            
+                            updateDashboard();
+                            showSuccess(`Successfully imported ${importedTransactions.length} transactions!`);
+                        } else {
+                            showError('No valid transactions found in the CSV file');
+                        }
+                    } catch (error) {
+                        showError('Error reading CSV file: ' + error.message);
+                    } finally {
+                        loading.style.display = 'none';
+                        e.target.value = '';
+                    }
+                };
+
+                reader.onerror = function() {
+                    showError('Error reading file');
+                    loading.style.display = 'none';
+                };
+
+                reader.readAsText(file);
+            });
+        }
+    }, 500);
+});
